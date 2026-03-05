@@ -1,0 +1,321 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "974645eb-aac1-40ea-8a4c-2e7b0084844e",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.bbci.co.uk/news/rss.xml",
+        "options": {}
+      },
+      "id": "7a40b32d-0692-454b-a5c6-44abe30f9d1a",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "limit"
+      },
+      "id": "79ec5d62-a6a5-436a-93b6-fd69959c9988",
+      "name": "Limit Item (Test)",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        448,
+        0
+      ],
+      "notesInFlow": true,
+      "disabled": true,
+      "notes": "ดึงมาแค่ 1 บทความเพื่อทดสอบ"
+    },
+    {
+      "parameters": {
+        "title": "={{ $json.title }}",
+        "additionalFields": {
+          "status": "publish"
+        }
+      },
+      "id": "ffff49d2-d7ca-44ba-9bf8-0f450e17a62b",
+      "name": "WordPress Auto Post",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "OnAddzeZIJxBJ8zG",
+          "name": "Wordpress account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "id": "536cf633-6d69-4aff-b432-0b118b4380d5",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.iso?.enclosure?.['@_url'] || $json.enclosure?.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "05811099-d088-4c23-a45b-6585c9344ecb",
+      "name": "Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        256,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = 'cover.jpg';\n    item.binary.data.mimeType = 'image/jpeg';\n  }\n}\nreturn $input.all();"
+      },
+      "id": "4acbe794-7b7b-4538-8512-e306b48f0a8a",
+      "name": "Rename Image File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://demo.bru.ac.th/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "a4165486-e80d-4415-8417-22d9ef43312e",
+      "name": "Upload Media to WP (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        704,
+        368
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "OnAddzeZIJxBJ8zG",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://demo.bru.ac.th/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": {{ JSON.stringify($('Limit Item (Test)1').first().json.title) }},\n  \"content\": {{ JSON.stringify('<img src=\"' + $json.source_url + '\" style=\"max-width:100%; height:auto; margin-bottom:20px; border-radius:8px;\" /><p><strong>รายละเอียดข่าว:</strong><br>' + ($('Limit Item (Test)1').first().json.description || $('Limit Item (Test)1').first().json.contentSnippet || $('Limit Item (Test)1').first().json.content || '') + '</p><p><a href=\"' + $('Limit Item (Test)1').first().json.link + '\" target=\"_blank\">อ่านข่าวต้นฉบับจากไทยรัฐ</a></p>') }},\n  \"status\": \"draft\",\n  \"featured_media\": {{ $json.id }}\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "82f57084-5985-4be9-8cdb-91ee174925f2",
+      "name": "Create WP Post (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        912,
+        368
+      ],
+      "notesInFlow": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "OnAddzeZIJxBJ8zG",
+          "name": "Wordpress account"
+        }
+      },
+      "notes": "ยิง API สร้าง Post โดยตรง"
+    },
+    {
+      "parameters": {
+        "url": "https://www.thairath.co.th/rss/news",
+        "options": {}
+      },
+      "id": "f515c53f-62db-4941-98bd-0d410534b751",
+      "name": "RSS Feed Read1",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "limit"
+      },
+      "id": "1fc7ee42-bbf5-41cc-8450-53bba993886b",
+      "name": "Limit Item (Test)1",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        32,
+        368
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read": {
+      "main": [
+        [
+          {
+            "node": "Limit Item (Test)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Item (Test)": {
+      "main": [
+        [
+          {
+            "node": "WordPress Auto Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Feed Read1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Rename Image File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename Image File": {
+      "main": [
+        [
+          {
+            "node": "Upload Media to WP (HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Media to WP (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Create WP Post (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Feed Read1": {
+      "main": [
+        [
+          {
+            "node": "Limit Item (Test)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Item (Test)1": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "35e21cc124779fd7d3108afe8142ab17fbfafe99df67891b63fc05ab81e20b32"
+  }
+}
