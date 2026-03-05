@@ -11,3 +11,8 @@ https://docs.google.com/spreadsheets/d/1DxUpVFYCLG9WL5xvJUAhYeejo-MS5RT3NBUg1H6F
 https://www.edugems.ai/home
 
 
+API Key
+
+AIzaSyBB9_v2vaDR7tvH8f4wPUIslRFgoHOMbrw
+
+
